@@ -6,6 +6,24 @@ def remove_markdown(content):
     soup = BeautifulSoup(content, 'html.parser')
     return soup.get_text()
 
+def extract_sections(content):
+    """Extracts specific sections from markdown content"""
+    soup = BeautifulSoup(content, 'html.parser')
+    text = soup.get_text()
+    
+    sections = ['Installation', 'Setup', 'Usage', 'Quick Start', 'Getting Started']
+    extracted_data = {}
+    
+    for section in sections:
+        start_idx = text.find(section)
+        if start_idx != -1:
+            end_idx = text.find("\n#", start_idx)  # assuming next header starts with a newline followed by #
+            if end_idx == -1:
+                end_idx = None  # till the end of the content
+            extracted_data[section] = text[start_idx:end_idx].strip()
+            
+    return extracted_data
+
 def process_repo_data(file_path="repos_data.json"):
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -17,7 +35,12 @@ def process_repo_data(file_path="repos_data.json"):
         if repo["readme_content"]:
             repo_name = repo["repo_name"]
             readme_content = remove_markdown(repo["readme_content"])
-            
+
+            extracted_sections = extract_sections(repo["readme_content"])
+
+            for section, content in extracted_sections.items():
+                commit_data[repo_name][section] = content
+
             # Add the processed README content to the knowledge base
             knowledge_base += f"Repository: {repo_name}\n\n{readme_content}\n\n"
 

@@ -1,5 +1,6 @@
 import requests
 import json
+import BeautifulSoup
 
 def read_token_from_file(file_path="token.txt"):
     with open(file_path, 'r') as file:
@@ -84,10 +85,22 @@ def get_readme_and_history(repo, headers):
     commits_url = repo["commits_url"].replace("{/sha}", "")
     commit_data = get_commit_history(commits_url, headers)
     
+    # Fetching Languages
+    languages_url = repo["languages_url"]
+    lang_response = requests.get(languages_url, headers=headers)
+    languages = lang_response.json() if lang_response.status_code == 200 else {}
+
+    # Fetching Top Contributors
+    contributors_url = repo["contributors_url"] + "?per_page=3"
+    contributors_response = requests.get(contributors_url, headers=headers)
+    top_contributors = [contributor["login"] for contributor in contributors_response.json()] if contributors_response.status_code == 200 else []
+
     return {
         "repo_name": repo_name,
         "readme_content": readme_content,
-        "recent_commits": commit_data
+        "recent_commits": commit_data,
+        "languages": languages,
+        "top_contributors": top_contributors
     }
 
 repos = get_all_repos(BASE_URL, HEADERS)
