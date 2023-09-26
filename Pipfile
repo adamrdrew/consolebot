@@ -8,6 +8,8 @@ transformers = "*"
 torch = "*"
 nltk = "*"
 requests = "*"
+scikit-learn = "*"
+bs4 = "*"
 
 [dev-packages]
 
