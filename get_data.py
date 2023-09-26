@@ -1,6 +1,5 @@
 import requests
 import json
-import BeautifulSoup
 
 def read_token_from_file(file_path="token.txt"):
     with open(file_path, 'r') as file:
