@@ -4,12 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-transformers = "*"
 torch = "*"
 nltk = "*"
 requests = "*"
 scikit-learn = "*"
 bs4 = "*"
+transformers = {version = "*", extras = ["torch"]}
 
 [dev-packages]
 
