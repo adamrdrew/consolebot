@@ -1,7 +1,7 @@
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, TextDataset, DataCollatorForLanguageModeling, TrainingArguments, Trainer
 
 # Load pretrained model and tokenizer
-MODEL_NAME = "gpt2-medium"  # or "gpt2-small"
+MODEL_NAME = "gpt2-medium"
 tokenizer = GPT2Tokenizer.from_pretrained(MODEL_NAME)
 model = GPT2LMHeadModel.from_pretrained(MODEL_NAME)
 
@@ -9,23 +9,23 @@ model = GPT2LMHeadModel.from_pretrained(MODEL_NAME)
 train_dataset = TextDataset(
     tokenizer=tokenizer,
     file_path="data/knowledge_base.txt",
-    block_size=128
+    block_size=256  # Increased block size for more context
 )
 data_collator = DataCollatorForLanguageModeling(
     tokenizer=tokenizer,
     mlm=False
 )
 
-# Define training arguments and set up Trainer
+# Define training arguments
 training_args = TrainingArguments(
-    per_device_train_batch_size=4,  # adjust batch size based on your GPU memory
-    num_train_epochs=1,  # number of training epochs
+    per_device_train_batch_size=2,  # Adjust as needed
+    num_train_epochs=3,  # Increase epochs for more iterations
     logging_dir="./logs",
-    logging_steps=10,
-    save_steps=10,
+    logging_steps=50,  # Adjust logging frequency
+    save_steps=100,
     output_dir="./results",
     overwrite_output_dir=True,
-    save_total_limit=2
+    save_total_limit=3  # Save the latest 3 models for checkpoints
 )
 
 trainer = Trainer(
@@ -35,9 +35,9 @@ trainer = Trainer(
     train_dataset=train_dataset
 )
 
-# Fine-tune
+# Fine-tune the model
 trainer.train()
 
-# Save
+# Save the model and tokenizer
 model.save_pretrained("./custom_gpt2")
 tokenizer.save_pretrained("./custom_gpt2")
