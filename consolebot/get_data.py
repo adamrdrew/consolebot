@@ -5,6 +5,18 @@ import re
 from docutils import nodes
 from docutils.core import publish_doctree
 
+def read_token_from_file(file_path="token.txt"):
+    with open(file_path, 'r') as file:
+        return file.readline().strip()
+
+TOKEN = read_token_from_file()
+ORG_NAME = "RedHatInsights"
+BASE_URL = f"https://api.github.com/orgs/{ORG_NAME}/repos"
+HEADERS = {
+    "Accept": "application/vnd.github.v3+json",
+    "Authorization": f"token {TOKEN}"
+}
+
 def extract_plain_text_from_rst(rst_content):
     """Extract plain text from reStructuredText (RST) content."""
     
@@ -27,19 +39,6 @@ def extract_plain_text_from_rst(rst_content):
     
     # Join the text and return
     return '\n'.join(visitor.text_list).strip()
-
-def read_token_from_file(file_path="token.txt"):
-    with open(file_path, 'r') as file:
-        return file.readline().strip()
-
-TOKEN = read_token_from_file()
-
-ORG_NAME = "RedHatInsights"
-BASE_URL = f"https://api.github.com/orgs/{ORG_NAME}/repos"
-HEADERS = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": f"token {TOKEN}"
-}
 
 def gather_repo_data(repo, headers):
     """Gather data for a single repo."""
@@ -265,28 +264,29 @@ def get_readme_content(repo, headers):
     
     return readme_content_decoded
 
-repos = get_all_repos(BASE_URL, HEADERS)
-data = {}
-try_again_list = []
+def get_data():
+    repos = get_all_repos(BASE_URL, HEADERS)
+    data = {}
+    try_again_list = []
 
-for idx, repo in enumerate(repos, 1):
-    print(f"\n[{idx}/{len(repos)}] Processing repo: {repo['name']}")
-    repo_data = gather_repo_data(repo, HEADERS)
-    
-    if repo_data:
-        data.update(repo_data)
-    else:
-        try_again_list.append(repo)
+    for idx, repo in enumerate(repos, 1):
+        print(f"\n[{idx}/{len(repos)}] Processing repo: {repo['name']}")
+        repo_data = gather_repo_data(repo, HEADERS)
+        
+        if repo_data:
+            data.update(repo_data)
+        else:
+            try_again_list.append(repo)
 
-# Retry for repos in the try again list
-for idx, repo in enumerate(try_again_list, 1):
-    print(f"\nRetry [{idx}/{len(try_again_list)}] Processing repo: {repo['name']}")
-    repo_data = gather_repo_data(repo, HEADERS)
-    if repo_data:
-        data.update(repo_data)
+    # Retry for repos in the try again list
+    for idx, repo in enumerate(try_again_list, 1):
+        print(f"\nRetry [{idx}/{len(try_again_list)}] Processing repo: {repo['name']}")
+        repo_data = gather_repo_data(repo, HEADERS)
+        if repo_data:
+            data.update(repo_data)
 
-print("\nSaving data to repos_data.json...")
-with open("data/repos_data.json", "w") as f:
-    json.dump(data, f, indent=4)
-print("Data saved successfully.")
+    print("\nSaving data to repos_data.json...")
+    with open("data/repos_data.json", "w") as f:
+        json.dump(data, f, indent=4)
+    print("Data saved successfully.")
 

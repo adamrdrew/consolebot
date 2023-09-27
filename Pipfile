@@ -20,6 +20,7 @@ install = "*"
 asciidoc = "*"
 html2text = "*"
 click = "*"
+docutils = "*"
 
 [dev-packages]
 
