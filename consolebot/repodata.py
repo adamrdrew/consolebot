@@ -264,7 +264,7 @@ def get_readme_content(repo, headers):
     
     return readme_content_decoded
 
-def get_data():
+def get():
     repos = get_all_repos(BASE_URL, HEADERS)
     data = {}
     try_again_list = []

@@ -1,4 +1,3 @@
-import base64
 import spacy
 import json
 from summarizer import summarize
@@ -6,14 +5,13 @@ from fuzzywuzzy import process
 import markdown
 from bs4 import BeautifulSoup
 from rich import print
-from rich.panel import Panel
 from rich.text import Text
 from fuzzywuzzy import fuzz
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet, stopwords
 from nltk.tokenize import word_tokenize
 import re
-import click
+
 
 # Download necessary NLTK data
 import nltk
@@ -163,7 +161,7 @@ def extract_intent_and_repo_name(query):
 
     return intent, repo_name
 
-def run_query(query):
+def run(query):
     try:
         intent, repo_name = extract_intent_and_repo_name(query)
         # rest of your code
