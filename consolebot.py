@@ -13,6 +13,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet, stopwords
 from nltk.tokenize import word_tokenize
 import re
+import click
 
 # Download necessary NLTK data
 import nltk
@@ -150,10 +151,11 @@ def extract_intent_and_repo_name(query):
     return intent, repo_name
 
 
-# CLI Interaction
-def main():
+@click.command()
+@click.argument('query', nargs=-1)
+def main(query):
+    query = ' '.join(query)
     try:
-        query = input("Enter your query: ")
         intent, repo_name = extract_intent_and_repo_name(query)
         # rest of your code
     except RepoNotFoundException as e:
@@ -181,29 +183,12 @@ def main():
         response_text.append(summary)
     elif intent == "contributors":
         contributors = get_contributors(repo_name)
-        response_text.append("\n" + ", ".join(contributors))
+        response_text.append("\n" + contributors)
     elif intent == "language":
         language = get_language(repo_name)
         response_text.append("\n" + language)
 
     print(Panel(response_text))
-
-
-# Data Preprocessing
-for repo_key, repo in data.items():
-    # Safely decode README content
-    readme_content = repo.get('readme_content', "")
-    if readme_content:
-        repo['decoded_readme'] = base64.b64decode(readme_content).decode('utf-8')
-    else:
-        repo['decoded_readme'] = ""
-
-    # Safely determine primary language
-    languages = repo.get('languages', {})
-    if languages:
-        repo['primary_language'] = languages[0]
-    else:
-        repo['primary_language'] = "Unknown"
 
 if __name__ == "__main__":
     main()

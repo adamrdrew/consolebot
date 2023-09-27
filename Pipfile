@@ -19,6 +19,7 @@ rich = "*"
 install = "*"
 asciidoc = "*"
 html2text = "*"
+click = "*"
 
 [dev-packages]
 
