@@ -96,18 +96,31 @@ def get_summary(repo_name):
     for repo_key, repo in data.items():
         if repo_key == repo_name:
             html_content = markdown.markdown(repo['readme'])
-            plain_text = ''.join(BeautifulSoup(html_content, 'html.parser').findAll(string=True))
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Remove unwanted tags
+            for tag in soup.find_all(['img']):
+                tag.decompose()
+
+            plain_text = ' '.join(soup.stripped_strings)
+
+            # Remove unwanted patterns or strings
+            for pattern in [':note-caption:', ':informationsource:', 'image:', 'adoc[Learn More]']:
+                plain_text = plain_text.replace(pattern, '')
+
+            # Replace multiple newlines/spaces with a single space
+            plain_text = re.sub(r'\s+', ' ', plain_text)
             
             # Top-N Sentences
             sentences = plain_text.split('.')
-            top_n_sentences = '. '.join(sentences[:3])  # Taking the first 3 sentences
+            top_n_sentences = '. '.join(sentences[:3]).strip()  # Taking the first 3 sentences
 
             # For Keyword Weighting
             # Define your keywords (can be expanded as needed)
             keywords = ["introduction", "overview", "purpose", "use", "functionality", "goal"]
             
             weighted_sentences = [sentence for sentence in sentences if any(keyword in sentence for keyword in keywords)]
-            keyword_weighted_summary = '. '.join(weighted_sentences[:3])  # Take the first 3 keyword-rich sentences
+            keyword_weighted_summary = '. '.join(weighted_sentences[:3]).strip()  # Take the first 3 keyword-rich sentences
             
             # Decide which one to return based on some criteria, or combine both.
             # Here, I'm combining both:
@@ -188,7 +201,7 @@ def main(query):
         language = get_language(repo_name)
         response_text.append("\n" + language)
 
-    print(Panel(response_text))
+    print(response_text)
 
 if __name__ == "__main__":
     main()
