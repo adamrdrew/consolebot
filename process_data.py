@@ -24,7 +24,7 @@ def extract_sections(content):
             
     return extracted_data
 
-def process_repo_data(file_path="repos_data.json"):
+def process_repo_data(file_path="data/repos_data.json"):
     with open(file_path, "r") as f:
         data = json.load(f)
 
