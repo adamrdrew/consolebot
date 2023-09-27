@@ -10,6 +10,15 @@ requests = "*"
 scikit-learn = "*"
 bs4 = "*"
 transformers = {version = "*", extras = ["torch"]}
+spacy = "*"
+summarizer = "*"
+fuzzywuzzy = "*"
+python-levenshtein = "*"
+markdown = "*"
+rich = "*"
+install = "*"
+asciidoc = "*"
+html2text = "*"
 
 [dev-packages]
 
