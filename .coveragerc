@@ -1,0 +1,6 @@
+[run]
+source = 
+    consolebot
+omit = 
+    */__init__.py
+    tests/*

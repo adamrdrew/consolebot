@@ -2,3 +2,4 @@ token.txt
 data/*
 results/*
 custom_gpt2/*
+.coverage

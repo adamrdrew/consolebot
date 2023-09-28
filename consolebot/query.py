@@ -13,6 +13,7 @@ from nltk.corpus import wordnet, stopwords
 from nltk.tokenize import word_tokenize
 import re
 import warnings
+import os
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -31,10 +32,19 @@ class RepoNotFoundException(Exception):
 
 nlp = spacy.load("en_core_web_md")
 
-# Load data from JSON file
-with open('data/repos_data.json', 'r') as file:
-    data = json.load(file)
+# Set the path for the JSON file
+DATA_PATH = os.path.expanduser('~/.config/consolebot/repos_data.json')
 
+# Try to load data from the JSON file
+try:
+    with open(DATA_PATH, 'r') as file:
+        data = json.load(file)
+except FileNotFoundError:
+    print(f"Data file not found at {DATA_PATH}.")
+    print("Please run 'consolebot refresh' to pull the latest data.")
+    # Optionally, you can also exit the program if the file is crucial
+    import sys
+    sys.exit(1)
 # Initialize lemmatizer
 lemmatizer = WordNetLemmatizer()
 

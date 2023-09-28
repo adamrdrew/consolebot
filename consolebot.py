@@ -39,6 +39,7 @@ def ask_command(user_query):
 def refresh():
     repodata.get()
 
+
 cli.add_command(ask_command)
 cli.add_command(refresh)
 

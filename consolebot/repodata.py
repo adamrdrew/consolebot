@@ -4,6 +4,7 @@ import base64
 import re
 from docutils import nodes
 from docutils.core import publish_doctree
+import os
 
 def read_token_from_file(file_path="token.txt"):
     with open(file_path, 'r') as file:
@@ -265,6 +266,11 @@ def get_readme_content(repo, headers):
     return readme_content_decoded
 
 def get():
+    path = os.path.expanduser('~/.config/consolebot/repos_data.json')
+    dir_name = os.path.dirname(path)
+    if dir_name and not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
     repos = get_all_repos(BASE_URL, HEADERS)
     data = {}
     try_again_list = []
@@ -285,8 +291,8 @@ def get():
         if repo_data:
             data.update(repo_data)
 
-    print("\nSaving data to repos_data.json...")
-    with open("data/repos_data.json", "w") as f:
+    print("\nSaving data to f{path}...")
+    with open(path, "w") as f:
         json.dump(data, f, indent=4)
     print("Data saved successfully.")
 

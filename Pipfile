@@ -26,6 +26,7 @@ gensim = "*"
 sentencepiece = "*"
 pytest = "*"
 mock = "*"
+codecov = "*"
 
 [dev-packages]
 
