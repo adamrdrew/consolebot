@@ -33,7 +33,7 @@ class RepoNotFoundException(Exception):
 
 
 
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_md")
 
 # Load data from JSON file
 with open('data/repos_data.json', 'r') as file:
@@ -70,25 +70,23 @@ def preprocess_text(text, remove_stopwords=True):
 def determine_intent(query, repo_name):
 
     query = query.replace(repo_name, '').strip()
+    processed_query = nlp(preprocess_text(query))
 
-    processed_query = preprocess_text(query)
-
-    # Using fuzzy matching to find the closest intent
-    max_score = 0
+    max_similarity = -1
     detected_intent = None
 
     for intent, phrases in intents.items():
         for phrase in phrases:
-            score = fuzz.ratio(processed_query, preprocess_text(phrase))
-            #print(f"Comparing '{processed_query}' to '{preprocess_text(phrase)}' results in score: {score}")
-            if score > max_score:
-                max_score = score
+            similarity = processed_query.similarity(nlp(phrase))
+            if similarity > max_similarity:
+                max_similarity = similarity
                 detected_intent = intent
 
     # Setting a threshold, below which the intent is considered not detected (you can adjust as needed)
-    if max_score < 60: 
+    if max_similarity < 0.6: 
         return None
     return detected_intent
+
 
 def get_summary(repo_name):
     for repo_key, repo in data.items():
