@@ -24,21 +24,10 @@ nltk.download('stopwords', quiet=True)
 nltk.download('punkt', quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
-# Define intents and their key phrases
-intents = {
-    "summary": ["summary", "describe", "explain", "what is", "tell me about", "details", "overview", "tell me a bit about", "does do"],
-    "contributors": ["who works", "works", "contributors", "team members", "developers", "maintainers", "people", "team"],
-    "language": ["language", "written in", "coding language", "programmed in", "developed in", "coded in", "developed in"],
-    "recent_activity": ["recent", "recently", "new", "changes", "updates",  "happening", "going on", "changed"]
-}
-
 stop_words = set(stopwords.words('english'))
-
 
 class RepoNotFoundException(Exception):
     pass
-
-
 
 nlp = spacy.load("en_core_web_md")
 
@@ -74,7 +63,7 @@ def preprocess_text(text, remove_stopwords=True):
     return processed_text
 
 
-def determine_intent(query, repo_name):
+def determine_intent(query, repo_name, intents):
     query = query.replace(repo_name, '').strip().lower()
 
     best_match_score = -1
@@ -161,51 +150,81 @@ def generate_combinations(query):
 
     return combinations
 
-def extract_repo_name(query):
+
+def disambiguate_repo_name(top_matches):
+    print("Multiple repositories matched your query:")
+    for idx, (match_name, match_score) in enumerate(top_matches, 1):
+        print(f"{idx}. {match_name} ({match_score}%)")
+    
+    max_attempts = 3
+    attempts = 0
+    
+    while attempts < max_attempts:
+        choice = input("Please select the correct repository by number: ")
+        try:
+            selected_repo = top_matches[int(choice)-1][0]
+            return selected_repo
+        except (ValueError, IndexError):
+            attempts += 1
+            if attempts == max_attempts:
+                print("Invalid choices exceeded. Defaulting to the first option.")
+                return top_matches[0][0]
+            else:
+                print(f"Invalid choice. You have {max_attempts - attempts} attempts left. Please select a valid number from the list.")
+
+
+def determine_repo_name(query, disambiguator=disambiguate_repo_name):
+    repo_name = None
+    intent = None
+    
     # Extract repo names for fuzzy matching
     repo_names = [repo_key for repo_key, repo in data.items()]
 
-    query_combinations = generate_combbinations(query)
+    query_combinations = generate_combinations(query)
     # Check for multi-word exact matches first
     multi_word_matches = [name for name in repo_names if name in query_combinations]
-    
+
     if multi_word_matches:
-        return max(multi_word_matches, key=len)  # choose the longest match, assuming it's more specific
+        repo_name = max(multi_word_matches, key=len)  # choose the longest match, assuming it's more specific
     else:
         # Check for single-word exact matches
         query_words = set(query.split())
         single_word_matches = query_words.intersection(repo_names)
         if single_word_matches:
-            return single_word_matches.pop()  # take any exact match (if multiple, just take one)
+            repo_name = single_word_matches.pop()  # take any exact match (if multiple, just take one)
     
-    # Find the best fuzzy match for the repo name in the query
-    matches = process.extract(query, repo_names, limit=10)
-    matches = sorted(matches, key=lambda x: (-x[1], len(x[0])))
-    
-    # Check the top matches for disambiguation
-    top_matches = matches[:3]  # Get top 3 matches
-    best_match, best_match_score = top_matches[0]
-
-    if len(top_matches) > 1 and (best_match_score - top_matches[1][1]) < 10:  # Threshold of 10 can be adjusted
-        print("Multiple repositories matched your query:")
-        for idx, (match_name, match_score) in enumerate(top_matches, 1):
-            print(f"{idx}. {match_name} ({match_score}%)")
+    if not repo_name:
+        # Find the best fuzzy match for the repo name in the query
+        matches = process.extract(query, repo_names, limit=10)
+        matches = sorted(matches, key=lambda x: (-x[1], len(x[0])))
         
-        choice = input("Please select the correct repository by number: ")
-        return top_matches[int(choice)-1][0]
-    elif best_match_score >= 70:
-        return best_match
-    else:
-        raise RepoNotFoundException(f"Could not identify a repository from the query: '{query}'")
+        # Check the top matches for disambiguation
+        top_matches = matches[:3]  # Get top 3 matches
+        best_match, best_match_score = top_matches[0]
 
-
+        if len(top_matches) > 1 and (best_match_score - top_matches[1][1]) < 10:  # Threshold of 10 can be adjusted
+            repo_name = disambiguator(top_matches)
+        elif best_match_score >= 70:
+            repo_name = best_match
+        else:
+            raise RepoNotFoundException(f"Could not identify a repository from the query: '{query}'")
+    
+    # Determine intent
+    return repo_name
 
 def run(query):
+    # Define intents and their key phrases
+    intents = {
+        "summary": ["summary", "describe", "explain", "what is", "tell me about", "details", "overview", "tell me a bit about", "does do"],
+        "contributors": ["who works", "works", "contributors", "team members", "developers", "maintainers", "people", "team"],
+        "language": ["language", "written in", "coding language", "programmed in", "developed in", "coded in", "developed in"],
+        "recent_activity": ["recent", "recently", "new", "changes", "updates",  "happening", "going on", "changed"]
+    }
     intent = None
     repo_name = None
     try:
-        repo_name = extract_repo_name(query)
-        intent = determine_intent(query, repo_name)
+        repo_name = determine_repo_name(query)
+        intent = determine_intent(query, repo_name, intents)
         # rest of your code
     except RepoNotFoundException as e:
         print(e)  # or print(str(e)) for just the message without the traceback

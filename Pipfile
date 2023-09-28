@@ -24,6 +24,8 @@ docutils = "*"
 bert-extractive-summarizer = "*"
 gensim = "*"
 sentencepiece = "*"
+pytest = "*"
+mock = "*"
 
 [dev-packages]
 
