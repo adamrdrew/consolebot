@@ -38,7 +38,7 @@ DATA_PATH = os.path.expanduser('~/.config/consolebot/repos_data.json')
 # Try to load data from the JSON file
 try:
     with open(DATA_PATH, 'r') as file:
-        data = json.load(file)
+        cached_github_data = json.load(file)
 except FileNotFoundError:
     print(f"Data file not found at {DATA_PATH}.")
     print("Please run 'consolebot refresh' to pull the latest data.")
@@ -94,7 +94,7 @@ def determine_intent(query, repo_name, intents):
 
 
 def get_summary(repo_name):
-    for repo_key, repo in data.items():
+    for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
             html_content = markdown.markdown(repo['readme'])
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -128,7 +128,7 @@ def get_summary(repo_name):
 
 
 def get_recent_activity(repo_name, num_commits=5):  # default to showing the last 5 commits
-    for repo_key, repo in data.items():
+    for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
             commits = repo.get('recent_commits', [])
             # If there are fewer commits than the default number, show them all
@@ -137,7 +137,7 @@ def get_recent_activity(repo_name, num_commits=5):  # default to showing the las
 
 
 def get_contributors(repo_name):
-    for repo_key, repo in data.items():
+    for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
             contributors = [name for name in repo.get('contributors', []) if name != "Github"]
             return ", ".join(sorted(contributors))
@@ -145,7 +145,7 @@ def get_contributors(repo_name):
 
 
 def get_language(repo_name):
-    for repo_key, repo in data.items():
+    for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
             return ', '.join(repo.get('languages', ['Unknown']))
     return "Repository not found."
@@ -188,7 +188,7 @@ def determine_repo_name(query, disambiguator=disambiguate_repo_name):
     intent = None
     
     # Extract repo names for fuzzy matching
-    repo_names = [repo_key for repo_key, repo in data.items()]
+    repo_names = [repo_key for repo_key, repo in cached_github_data.items()]
 
     query_combinations = generate_combinations(query)
     # Check for multi-word exact matches first
