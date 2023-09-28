@@ -9,7 +9,7 @@ nltk = "*"
 requests = "*"
 scikit-learn = "*"
 bs4 = "*"
-transformers = {version = "*", extras = ["torch"]}
+transformers = "*"
 spacy = "*"
 summarizer = "*"
 fuzzywuzzy = "*"
@@ -21,6 +21,9 @@ asciidoc = "*"
 html2text = "*"
 click = "*"
 docutils = "*"
+bert-extractive-summarizer = "*"
+gensim = "*"
+sentencepiece = "*"
 
 [dev-packages]
 

@@ -1,6 +1,7 @@
+import itertools
 import spacy
 import json
-from summarizer import summarize
+from summarizer import Summarizer
 from fuzzywuzzy import process
 import markdown
 from bs4 import BeautifulSoup
@@ -11,6 +12,9 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet, stopwords
 from nltk.tokenize import word_tokenize
 import re
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 # Download necessary NLTK data
@@ -23,9 +27,12 @@ nltk.download('averaged_perceptron_tagger', quiet=True)
 # Define intents and their key phrases
 intents = {
     "summary": ["summary", "describe", "explain", "what is", "tell me about", "details", "overview", "tell me a bit about", "does do"],
-    "contributors": ["who works", "contributors", "team members", "developers", "maintainers", "people"],
-    "language": ["language", "written in", "coding language", "programmed in", "developed in"]
+    "contributors": ["who works", "works", "contributors", "team members", "developers", "maintainers", "people", "team"],
+    "language": ["language", "written in", "coding language", "programmed in", "developed in", "coded in", "developed in"],
+    "recent_activity": ["recent", "recently", "new", "changes", "updates",  "happening", "going on", "changed"]
 }
+
+stop_words = set(stopwords.words('english'))
 
 
 class RepoNotFoundException(Exception):
@@ -68,24 +75,23 @@ def preprocess_text(text, remove_stopwords=True):
 
 
 def determine_intent(query, repo_name):
+    query = query.replace(repo_name, '').strip().lower()
 
-    query = query.replace(repo_name, '').strip()
-    processed_query = nlp(preprocess_text(query))
-
-    max_similarity = -1
+    best_match_score = -1
     detected_intent = None
 
     for intent, phrases in intents.items():
         for phrase in phrases:
-            similarity = processed_query.similarity(nlp(phrase))
-            if similarity > max_similarity:
-                max_similarity = similarity
+            score = process.extractOne(query, [phrase])[1]
+            if score > best_match_score:
+                best_match_score = score
                 detected_intent = intent
 
     # Setting a threshold, below which the intent is considered not detected (you can adjust as needed)
-    if max_similarity < 0.6: 
+    if best_match_score < 80:  # Adjust the threshold based on your observation
         return None
     return detected_intent
+
 
 
 def get_summary(repo_name):
@@ -107,29 +113,37 @@ def get_summary(repo_name):
             # Replace multiple newlines/spaces with a single space
             plain_text = re.sub(r'\s+', ' ', plain_text)
             
-            # Top-N Sentences
+            # Direct Extraction of first N sentences
             sentences = plain_text.split('.')
-            top_n_sentences = '. '.join(sentences[:3]).strip()  # Taking the first 3 sentences
+            intro_text = '. '.join(sentences[:3]).strip()  # Taking the first 5 sentences as an example
 
-            # For Keyword Weighting
-            # Define your keywords (can be expanded as needed)
-            keywords = ["introduction", "overview", "purpose", "use", "functionality", "goal"]
-            
-            weighted_sentences = [sentence for sentence in sentences if any(keyword in sentence for keyword in keywords)]
-            keyword_weighted_summary = '. '.join(weighted_sentences[:3]).strip()  # Take the first 3 keyword-rich sentences
-            
-            # Decide which one to return based on some criteria, or combine both.
-            # Here, I'm combining both:
-            combined_summary = top_n_sentences + '. ' + keyword_weighted_summary
+            # Now, summarize this introduction
+            description = repo.get("description") or ""
+            model = Summarizer()
+            nlp_summary = model(intro_text, num_sentences=3)  # Adjust the count as needed
+            nlp_summary = description + "\n" + nlp_summary
 
-            return combined_summary if repo['readme'] else "No summary available."
+
+            return nlp_summary if repo['readme'] else "No summary available."
     return "Repository not found."
+
+
+def get_recent_activity(repo_name, num_commits=5):  # default to showing the last 5 commits
+    for repo_key, repo in data.items():
+        if repo_key == repo_name:
+            commits = repo.get('recent_commits', [])
+            # If there are fewer commits than the default number, show them all
+            return "\n".join(commits[:num_commits]) if commits else "No recent commits found."
+    return "Repository not found."
+
 
 def get_contributors(repo_name):
     for repo_key, repo in data.items():
         if repo_key == repo_name:
-            return ", ".join(repo.get('contributors', []))
+            contributors = [name for name in repo.get('contributors', []) if name != "Github"]
+            return ", ".join(sorted(contributors))
     return "Repository not found."
+
 
 def get_language(repo_name):
     for repo_key, repo in data.items():
@@ -137,29 +151,68 @@ def get_language(repo_name):
             return ', '.join(repo.get('languages', ['Unknown']))
     return "Repository not found."
 
+def generate_combinations(query):
+    query_words = [word for word in query.split() if word not in stop_words]
+    combinations = []
+
+    for i in range(2, len(query_words) + 1):
+        for combo in itertools.combinations(query_words, i):
+            combinations.append("-".join(combo))
+
+    return combinations
+
 def extract_intent_and_repo_name(query):
     repo_name = None
     intent = None
     
     # Extract repo names for fuzzy matching
     repo_names = [repo_key for repo_key, repo in data.items()]
-    
-    # Find the best fuzzy match for the repo name in the query
-    matches = process.extract(query, repo_names, limit=10)
-    matches = sorted(matches, key=lambda x: (-x[1], len(x[0])))
-    best_match, match_score = matches[0]
-    
-    if match_score >= 70:  # You can adjust this threshold based on your requirements
-        repo_name = best_match
-    else:
-        raise RepoNotFoundException(f"Could not identify a repository from the query: '{query}'")
 
+    query_combinations = generate_combinations(query)
+    print (query_combinations)
+    # Check for multi-word exact matches first
+    multi_word_matches = [name for name in repo_names if name in query_combinations]
+    print (multi_word_matches)
+    if multi_word_matches:
+        repo_name = max(multi_word_matches, key=len)  # choose the longest match, assuming it's more specific
+    else:
+        # Check for single-word exact matches
+        query_words = set(query.split())
+        single_word_matches = query_words.intersection(repo_names)
+        if single_word_matches:
+            repo_name = single_word_matches.pop()  # take any exact match (if multiple, just take one)
+    
+    if not repo_name:
+        # Find the best fuzzy match for the repo name in the query
+        matches = process.extract(query, repo_names, limit=10)
+        matches = sorted(matches, key=lambda x: (-x[1], len(x[0])))
+        
+        # Check the top matches for disambiguation
+        top_matches = matches[:3]  # Get top 3 matches
+        best_match, best_match_score = top_matches[0]
+
+        if len(top_matches) > 1 and (best_match_score - top_matches[1][1]) < 10:  # Threshold of 10 can be adjusted
+            print("Multiple repositories matched your query:")
+            for idx, (match_name, match_score) in enumerate(top_matches, 1):
+                print(f"{idx}. {match_name} ({match_score}%)")
+            
+            choice = input("Please select the correct repository by number: ")
+            repo_name = top_matches[int(choice)-1][0]
+        elif best_match_score >= 70:
+            repo_name = best_match
+        else:
+            raise RepoNotFoundException(f"Could not identify a repository from the query: '{query}'")
+    
     # Determine intent
     intent = determine_intent(query, repo_name)
 
     return intent, repo_name
 
+
+
 def run(query):
+    intent = None
+    repo_name = None
     try:
         intent, repo_name = extract_intent_and_repo_name(query)
         # rest of your code
@@ -192,6 +245,9 @@ def run(query):
     elif intent == "language":
         language = get_language(repo_name)
         response_text.append("\n" + language)
+    elif intent == "recent_activity":
+        recent_activity = get_recent_activity(repo_name)
+        response_text.append("\n" + recent_activity)
 
     print(response_text)
 
