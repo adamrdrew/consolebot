@@ -21,8 +21,7 @@ class GithubData:
         if cls._formatted_repos_cache:  # Return memoized results if exists
             return cls._formatted_repos_cache
         
-        repos_data = cls.get_repos()
-        repos = repos_data.get('repos', [])
+        repos = cls.get_repos()
 
         # 2. Formatting:
         formatted_repos = {}
@@ -102,7 +101,7 @@ class GithubData:
         headers = cls.get_headers()
         """Returns the list of files in the root directory of a repo."""
         contents_url = repo["contents_url"].replace("{+path}", "")
-        response = cls.safe_request(requests.get, contents_url, headers)
+        response = cls._safe_request(requests.get, contents_url, headers)
         if not response or response.status_code != 200:
             return []
         return [item['name'] for item in response.json()]
@@ -111,15 +110,13 @@ class GithubData:
     def get_readme_content(cls, repo):
         headers = cls.get_headers()
         repo_name = repo['name']
-        print(f"\nProcessing repository: {repo_name}")
 
         # Get the exact README filename
-        readme_filename = cls.has_readme(repo, headers)
+        readme_filename = cls.has_readme(repo)
         if not readme_filename:
             print(f"No README found for {repo['name']}. Skipping...")
             return None
 
-        print(f"Fetching {readme_filename} for {repo_name}...")
         readme_url = repo["contents_url"].replace("{+path}", readme_filename)
         readme_response = cls._safe_request(requests.get, readme_url, headers)
         if not readme_response:
@@ -178,11 +175,11 @@ class GithubData:
             return []
 
     @classmethod
-    def get_commit_history(cls, commits_url, max_commits=100):
+    def get_commits(cls, repo, max_commits=100):
         headers = cls.get_headers()
         commit_data = []
         commit_count = 0
-        commits_url = commits_url.split("{")[0]
+        commits_url = repo["commits_url"].split("{")[0]
         while commits_url and commit_count < max_commits:
             commits_response = cls._safe_request(requests.get, commits_url, headers)
             if not commits_response:
