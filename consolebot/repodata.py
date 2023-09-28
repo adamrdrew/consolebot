@@ -6,17 +6,6 @@ from docutils import nodes
 from docutils.core import publish_doctree
 import os
 
-def read_token_from_file(file_path="token.txt"):
-    with open(file_path, 'r') as file:
-        return file.readline().strip()
-
-TOKEN = read_token_from_file()
-ORG_NAME = "RedHatInsights"
-BASE_URL = f"https://api.github.com/orgs/{ORG_NAME}/repos"
-HEADERS = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": f"token {TOKEN}"
-}
 
 def extract_plain_text_from_rst(rst_content):
     """Extract plain text from reStructuredText (RST) content."""

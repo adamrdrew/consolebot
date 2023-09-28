@@ -14,6 +14,7 @@ from nltk.tokenize import word_tokenize
 import re
 import warnings
 import os
+from consolebot.githubdata import GithubData 
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -32,19 +33,8 @@ class RepoNotFoundException(Exception):
 
 nlp = spacy.load("en_core_web_md")
 
-# Set the path for the JSON file
-DATA_PATH = os.path.expanduser('~/.config/consolebot/repos_data.json')
+cached_github_data = GithubData.get_repos()
 
-# Try to load data from the JSON file
-try:
-    with open(DATA_PATH, 'r') as file:
-        cached_github_data = json.load(file)
-except FileNotFoundError:
-    print(f"Data file not found at {DATA_PATH}.")
-    print("Please run 'consolebot refresh' to pull the latest data.")
-    # Optionally, you can also exit the program if the file is crucial
-    import sys
-    sys.exit(1)
 # Initialize lemmatizer
 lemmatizer = WordNetLemmatizer()
 
@@ -96,7 +86,11 @@ def determine_intent(query, repo_name, intents):
 def get_summary(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            html_content = markdown.markdown(repo['readme'])
+            readme = GithubData.get_readme(repo)
+            if not readme:
+                return "No summary available."
+
+            html_content = markdown.markdown(readme)
             soup = BeautifulSoup(html_content, 'html.parser')
             
             # Remove unwanted tags
@@ -122,15 +116,14 @@ def get_summary(repo_name):
             nlp_summary = model(intro_text, num_sentences=3)  # Adjust the count as needed
             nlp_summary = description + "\n" + nlp_summary
 
-
-            return nlp_summary if repo['readme'] else "No summary available."
+            return nlp_summary
     return "Repository not found."
 
 
 def get_recent_activity(repo_name, num_commits=5):  # default to showing the last 5 commits
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            commits = repo.get('recent_commits', [])
+            commits = GithubData.get_commits(repo)
             # If there are fewer commits than the default number, show them all
             return "\n".join(commits[:num_commits]) if commits else "No recent commits found."
     return "Repository not found."
@@ -139,7 +132,7 @@ def get_recent_activity(repo_name, num_commits=5):  # default to showing the las
 def get_contributors(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            contributors = [name for name in repo.get('contributors', []) if name != "Github"]
+            contributors = [name for name in GithubData.get_repo_contributors(repo) if name != "Github"]
             return ", ".join(sorted(contributors))
     return "Repository not found."
 
@@ -147,7 +140,7 @@ def get_contributors(repo_name):
 def get_language(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            return ', '.join(repo.get('languages', ['Unknown']))
+            return ', '.join(GithubData.get_repo_languages(repo))
     return "Repository not found."
 
 def generate_combinations(query):
