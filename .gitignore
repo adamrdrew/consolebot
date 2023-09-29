@@ -3,3 +3,6 @@ data/*
 results/*
 custom_gpt2/*
 .coverage
+coverage*
+.coverage.*
+.vscode/*

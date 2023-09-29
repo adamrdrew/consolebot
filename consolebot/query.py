@@ -18,6 +18,8 @@ from consolebot.githubdata import GithubData
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+data_source = GithubData
+cached_github_data = data_source.get_formatted_repos()
 
 # Download necessary NLTK data
 import nltk
@@ -33,7 +35,7 @@ class RepoNotFoundException(Exception):
 
 nlp = spacy.load("en_core_web_md")
 
-cached_github_data = GithubData.get_formatted_repos()
+
 
 # Initialize lemmatizer
 lemmatizer = WordNetLemmatizer()
@@ -86,7 +88,7 @@ def determine_intent(query, repo_name, intents):
 def get_summary(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            readme = GithubData.get_readme_content(repo)
+            readme = data_source.get_readme_content(repo)
             if not readme:
                 return "No summary available."
 
@@ -123,7 +125,7 @@ def get_summary(repo_name):
 def get_recent_activity(repo_name, num_commits=5):  # default to showing the last 5 commits
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            commits = GithubData.get_commits(repo)
+            commits = data_source.get_commits(repo)
             recent_commits = [commit["message"] for commit in commits[:3]]
             # If there are fewer commits than the default number, show them all
             return "\n".join(recent_commits[:num_commits]) if recent_commits else "No recent commits found."
@@ -133,7 +135,7 @@ def get_recent_activity(repo_name, num_commits=5):  # default to showing the las
 def get_contributors(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            contributors = [name for name in GithubData.get_repo_contributors(repo) if name != "Github"]
+            contributors = [name for name in data_source.get_repo_contributors(repo) if name != "Github"]
             return ", ".join(sorted(contributors))
     return "Repository not found."
 
@@ -141,7 +143,7 @@ def get_contributors(repo_name):
 def get_language(repo_name):
     for repo_key, repo in cached_github_data.items():
         if repo_key == repo_name:
-            return ', '.join(GithubData.get_repo_languages(repo))
+            return ', '.join(data_source.get_repo_languages(repo))
     return "Repository not found."
 
 def generate_combinations(query):
@@ -216,6 +218,7 @@ def determine_repo_name(query, disambiguator=disambiguate_repo_name):
     return repo_name
 
 def run(query):
+    
     # Define intents and their key phrases
     intents = {
         "summary": ["summary", "describe", "explain", "what is", "tell me about", "details", "overview", "tell me a bit about", "does do"],
