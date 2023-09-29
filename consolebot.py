@@ -1,5 +1,5 @@
 import click
-from consolebot import query, repodata
+from consolebot import query
 
 class DefaultGroup(click.Group):
 
@@ -17,7 +17,6 @@ class DefaultGroup(click.Group):
         default_cmd = self.get_command(ctx, self.default_cmd_name)
         return self.default_cmd_name, default_cmd, args
 
-        
         # Otherwise, use the default command and the entire arg list
         default_cmd = self.get_command(ctx, self.default_cmd_name)
         return default_cmd, args
@@ -35,13 +34,7 @@ def ask_command(user_query):
     else:
         click.echo("Please provide a query.")
 
-@click.command()
-def refresh():
-    repodata.get()
-
-
 cli.add_command(ask_command)
-cli.add_command(refresh)
 
 if __name__ == "__main__":
     cli()

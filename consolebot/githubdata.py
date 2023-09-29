@@ -6,9 +6,12 @@ from docutils import nodes
 from docutils.core import publish_doctree
 import os
 import datetime
+import logging
+
+logger = logging.getLogger("GithubData")
+logger.setLevel(logging.INFO)
 
 class GithubData:
-    
     ORG_NAME = "RedHatInsights"
     BASE_URL = f"https://api.github.com/orgs/{ORG_NAME}/repos"
     DATA_PATH = os.path.expanduser('~/.config/consolebot/repos.json')
@@ -167,7 +170,7 @@ class GithubData:
         languages_url = repo["languages_url"]
         headers = cls.get_headers()
         """Fetch languages for a repo."""
-        response = requests.get(languages_url, headers=headers)
+        response = cls._safe_request(requests.get, languages_url, headers=headers)
         if response.status_code == 200:
             return list(response.json().keys())
         else:
@@ -239,9 +242,12 @@ class GithubData:
         if os.path.exists(cls.DATA_PATH):
             with open(cls.DATA_PATH, 'r') as file:
                 cache = json.load(file)
-                last_updated = datetime.datetime.fromisoformat(cache.get('timestamp', ''))
+                timestamp = cache.get('timestamp')
+                if not timestamp:
+                    return []
+                last_updated = datetime.datetime.fromisoformat(timestamp)
                 if datetime.datetime.now() - last_updated > cls.CACHE_DURATION:
-                    print("Cache is old. Consider refreshing the data.")
+                    logger.info("Cache is old. Consider refreshing the data.")
                 return cache.get('repos', [])
         return []
 
