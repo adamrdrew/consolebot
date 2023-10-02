@@ -221,10 +221,24 @@ def run(query):
     
     # Define intents and their key phrases
     intents = {
-        "summary": ["summary", "describe", "explain", "what is", "tell me about", "details", "overview", "tell me a bit about", "does do"],
-        "contributors": ["who works", "works", "contributors", "team members", "developers", "maintainers", "people", "team"],
-        "language": ["language", "written in", "coding language", "programmed in", "developed in", "coded in", "developed in"],
-        "recent_activity": ["recent", "recently", "new", "changes", "updates",  "happening", "going on", "changed"]
+        "summary": [
+            "summary", "describe", "explain", "what is", "tell me about", 
+            "details", "overview", "tell me a bit about", "does do", "info", 
+            "give details", "exposition", "give a brief", "description about", 
+            "can you describe", "elucidate"
+        ],
+
+        "contributors": [
+            "who works", "works", "contributors", "team members", "developers", 
+            "maintainers", "people", "team", "who contributed", "list developers", 
+            "who built", "authors", "people behind", "who made"
+        ],
+
+        "language": [
+            "language", "written in", "coding language", "programmed in", 
+            "developed in", "coded in", "developed in", "which language", 
+            "platform", "stack", "technologies used", "frameworks", "language used"
+        ],
     }
     intent = None
     repo_name = None
