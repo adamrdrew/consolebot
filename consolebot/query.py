@@ -15,8 +15,10 @@ import re
 import warnings
 import os
 from consolebot.githubdata import GithubData 
+from sentence_transformers import SentenceTransformer, util
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, message=".*was trained with spaCy.*")
 
 data_source = GithubData
 cached_github_data = data_source.get_formatted_repos()
@@ -36,6 +38,9 @@ class RepoNotFoundException(Exception):
 nlp = spacy.load("en_core_web_md")
 
 
+# These are used for the intent inferance SBERT model
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+intent_embeddings = {}
 
 # Initialize lemmatizer
 lemmatizer = WordNetLemmatizer()
@@ -65,23 +70,7 @@ def preprocess_text(text, remove_stopwords=True):
     return processed_text
 
 
-def determine_intent(query, repo_name, intents):
-    query = query.replace(repo_name, '').strip().lower()
 
-    best_match_score = -1
-    detected_intent = None
-
-    for intent, phrases in intents.items():
-        for phrase in phrases:
-            score = process.extractOne(query, [phrase])[1]
-            if score > best_match_score:
-                best_match_score = score
-                detected_intent = intent
-
-    # Setting a threshold, below which the intent is considered not detected (you can adjust as needed)
-    if best_match_score < 80:  # Adjust the threshold based on your observation
-        return None
-    return detected_intent
 
 
 
@@ -217,6 +206,42 @@ def determine_repo_name(query, disambiguator=disambiguate_repo_name):
     # Determine intent
     return repo_name
 
+def infer_intent(query, repo_name):
+    print("Attempting to infer intent...")
+    query = query.replace(repo_name, '').strip().lower()
+
+    query_embedding = model.encode(query)
+    
+    best_similarity = -1
+    for intent, embeddings in intent_embeddings.items():
+        for embed in embeddings:
+            similarity = util.pytorch_cos_sim(query_embedding, embed)
+            if similarity > best_similarity:
+                best_similarity = similarity
+                detected_intent = intent
+        
+    return detected_intent
+
+def determine_intent(query, repo_name, intents):
+    print("Determining intent...")
+    query = query.replace(repo_name, '').strip().lower()
+
+    best_match_score = -1
+    detected_intent = None
+
+    for intent, phrases in intents.items():
+        for phrase in phrases:
+            score = process.extractOne(query, [phrase])[1]
+            if score > best_match_score:
+                best_match_score = score
+                detected_intent = intent
+
+    # Setting a threshold, below which the intent is considered not detected (you can adjust as needed)
+    if best_match_score < 80:  # Adjust the threshold based on your observation
+        print("Intent match score is below threshold.")
+        return None
+    return detected_intent
+
 def run(query):
     
     # Define intents and their key phrases
@@ -240,11 +265,16 @@ def run(query):
             "platform", "stack", "technologies used", "frameworks", "language used"
         ],
     }
+    # Convert intents' key phrases into embeddings
+    for intent, phrases in intents.items():
+        intent_embeddings[intent] = [model.encode(phrase) for phrase in phrases]
     intent = None
     repo_name = None
     try:
         repo_name = determine_repo_name(query)
         intent = determine_intent(query, repo_name, intents)
+        if intent == None:
+            intent = infer_intent(query, repo_name)
         # rest of your code
     except RepoNotFoundException as e:
         print(e)  # or print(str(e)) for just the message without the traceback

@@ -27,6 +27,7 @@ sentencepiece = "*"
 pytest = "*"
 mock = "*"
 codecov = "*"
+sentence-transformers = "*"
 
 [dev-packages]
 
