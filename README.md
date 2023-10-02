@@ -1,6 +1,6 @@
 # ConsoleBot - GitHub Repository Assistant
 
-ConsoleBot is a CLI tool designed to assist developers in fetching summarized information about GitHub repositories based on natural language queries.
+ConsoleBot is a CLI tool designed to assist developers in fetching summarized information about ConsoleDot (RedHatInsights) GitHub repositories based on natural language queries.
 
 ## Features
 
@@ -17,7 +17,7 @@ ConsoleBot is a CLI tool designed to assist developers in fetching summarized in
 To get started, clone the repository:
 
 ```bash
-git clone https://github.com/<your_github_username>/consolebot.git
+git clone https://github.com/adamrdrew/consolebot.git
 cd consolebot
 ```
 
@@ -32,16 +32,14 @@ pip install -r requirements.txt
 Using ConsoleBot is simple. After installation, navigate to the project directory and execute the CLI tool:
 
 ```bash
-python cli.py ask "Give me a summary of the <repo_name> repository."
+python consoledot.py tell me about clowder
 ```
-
-Replace `<repo_name>` with the name of the repository you want information about.
 
 Example queries:
 
-- "Who are the contributors of the `<repo_name>` repo?"
-- "What languages is the `<repo_name>` repository written in?"
-- "Show me recent activities of `<repo_name>`."
+- whats new in clowder
+- who works on chrome
+- tell me about the frontend operator
 
 ## Development
 
